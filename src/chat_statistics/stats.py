@@ -34,7 +34,8 @@ class ChatStatistics:
         self,
         output_dir: Union[str, Path],
         width: int =1000, height: int =1000,
-        max_font_size: int =250,):
+        max_font_size: int =250,
+        backgound_color: str ='white'):
         """Generates a word cloud from the chat data
         :param output_dir: path to output directory for word cloud image
         """
@@ -70,6 +71,7 @@ class ChatStatistics:
             width=1000, height=1000,
             background_color='white',
             max_font_size=250,
+            backgound_color=backgound_color,
             ).generate(text)
         
         logger.info(f"Saving word cloud to {output_dir}...")
