@@ -60,7 +60,7 @@ class ChatStatistics:
                         text_content += f"\n {' '.join(tokens)}"
         
         # normalize reshape for final word cloud
-        text_content = self.normalizer.normalize(self.text_content)
+        text_content = self.normalizer.normalize(text_content)
         text = arabic_reshaper.reshape(text_content)
         text = get_display(text)
         
@@ -68,10 +68,9 @@ class ChatStatistics:
         logger.info("Generating word cloud...")
         wordcloud = WordCloud(
             font_path=str(DATA_DIR / 'courbd.ttf'),
-            width=1000, height=1000,
-            background_color='white',
-            max_font_size=250,
-            backgound_color=backgound_color,
+            width=width, height=height,
+            max_font_size=max_font_size,
+            background_color=backgound_color,
             ).generate(text)
         
         logger.info(f"Saving word cloud to {output_dir}...")
@@ -82,7 +81,7 @@ class ChatStatistics:
 
 
 if __name__ == "__main__":
-    chat_stats = ChatStatistics(chat_json=DATA_DIR / 'result_rs.json')
+    chat_stats = ChatStatistics(chat_json=DATA_DIR / 'result_telegram.json')
     chat_stats.generate_word_cloud(output_dir=DATA_DIR)
     
     print("Done!")

@@ -132,3 +132,6 @@ dmypy.json
 .vscode
 *.ipynb
 *.json
+test
+src/data/wordcloud.png
+src/data/courbd.ttf
