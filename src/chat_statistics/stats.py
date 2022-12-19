@@ -43,21 +43,25 @@ class ChatStatistics:
         text_content = ''
         for msg in self.chat_data['messages']:
             if type(msg['text']) is str:
-                tokens = word_tokenize(msg['text'])
-                tokens = filter(lambda item: item not in self.stop_words, tokens)
-                text_content += f"\n {' '.join(tokens)}"
+                # tokens = word_tokenize(msg['text'])
+                # tokens = filter(lambda item: item not in self.stop_words, tokens)
+                # text_content += f"\n {' '.join(tokens)}"
+                text_content += f"\n {' '.join(msg['text'])}"
+
             elif type(msg['text']) is list:
                 for sub_1 in msg['text']:
                     if type(sub_1) is str:
-                        tokens = word_tokenize(sub_1)
-                        tokens = filter(lambda item: item not in self.stop_words, tokens)
-                        text_content += f"\n {' '.join(tokens)}"
+                        # tokens = word_tokenize(sub_1)
+                        # tokens = filter(lambda item: item not in self.stop_words, tokens)
+                        # text_content += f"\n {' '.join(tokens)}"
+                        text_content += f"\n {' '.join(sub_1)}"
                     elif sub_1['type'] in ['code', 'link']:
                         pass
                     else:
-                        tokens = word_tokenize(sub_1['text'])
-                        tokens = filter(lambda item: item not in self.stop_words, tokens)
-                        text_content += f"\n {' '.join(tokens)}"
+                        # tokens = word_tokenize(sub_1['text'])
+                        # tokens = filter(lambda item: item not in self.stop_words, tokens)
+                        # text_content += f"\n {' '.join(tokens)}"
+                        text_content += f"\n {' '.join(sub_1['text'])}"
         
         # normalize reshape for final word cloud
         text_content = self.normalizer.normalize(text_content)
@@ -71,6 +75,7 @@ class ChatStatistics:
             width=width, height=height,
             max_font_size=max_font_size,
             background_color=backgound_color,
+            stopwords=self.stop_words # WordCloud can filter stopword itself
             ).generate(text)
         
         logger.info(f"Saving word cloud to {output_dir}...")
