@@ -33,35 +33,33 @@ class ChatStatistics:
     def generate_word_cloud(
         self,
         output_dir: Union[str, Path],
+        min_font_size=20, max_font_size=150,
+        max_words=800, 
         width: int =1000, height: int =1000,
-        max_font_size: int =250,
         backgound_color: str ='white'):
         """Generates a word cloud from the chat data
         :param output_dir: path to output directory for word cloud image
         """
-        logger.info("Lading text content...")
+        logger.info("Loading text content...")
         text_content = ''
         for msg in self.chat_data['messages']:
             if type(msg['text']) is str:
-                # tokens = word_tokenize(msg['text'])
-                # tokens = filter(lambda item: item not in self.stop_words, tokens)
-                # text_content += f"\n {' '.join(tokens)}"
-                text_content += f"\n {' '.join(msg['text'])}"
+                tokens = word_tokenize(msg['text'])
+                tokens = filter(lambda item: item not in self.stop_words, tokens)
+                text_content += f"\n {' '.join(tokens)}"
 
             elif type(msg['text']) is list:
                 for sub_1 in msg['text']:
                     if type(sub_1) is str:
-                        # tokens = word_tokenize(sub_1)
-                        # tokens = filter(lambda item: item not in self.stop_words, tokens)
-                        # text_content += f"\n {' '.join(tokens)}"
-                        text_content += f"\n {' '.join(sub_1)}"
+                        tokens = word_tokenize(sub_1)
+                        tokens = filter(lambda item: item not in self.stop_words, tokens)
+                        text_content += f"\n {' '.join(tokens)}"
                     elif sub_1['type'] in ['code', 'link']:
                         pass
                     else:
-                        # tokens = word_tokenize(sub_1['text'])
-                        # tokens = filter(lambda item: item not in self.stop_words, tokens)
-                        # text_content += f"\n {' '.join(tokens)}"
-                        text_content += f"\n {' '.join(sub_1['text'])}"
+                        tokens = word_tokenize(sub_1['text'])
+                        tokens = filter(lambda item: item not in self.stop_words, tokens)
+                        text_content += f"\n {' '.join(tokens)}"
         
         # normalize reshape for final word cloud
         text_content = self.normalizer.normalize(text_content)
@@ -72,10 +70,10 @@ class ChatStatistics:
         logger.info("Generating word cloud...")
         wordcloud = WordCloud(
             font_path=str(DATA_DIR / 'courbd.ttf'),
+            min_font_size=min_font_size, max_font_size=max_font_size,
+            max_words=max_words, 
             width=width, height=height,
-            max_font_size=max_font_size,
             background_color=backgound_color,
-            stopwords=self.stop_words # WordCloud can filter stopword itself
             ).generate(text)
         
         logger.info(f"Saving word cloud to {output_dir}...")
