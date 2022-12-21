@@ -1,12 +1,13 @@
-import json
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Union
 
 import arabic_reshaper
 from bidi.algorithm import get_display
-from hazm import Normalizer, word_tokenize
+from hazm import Normalizer, sent_tokenize, word_tokenize
 from loguru import logger
 from src.data import DATA_DIR  # Because of export ${PWD}, src is known
+from src.utils.io import read_file, read_json
 from wordcloud import WordCloud
 
 
@@ -19,17 +20,16 @@ class ChatStatistics:
         """
         # load chat data
         logger.info(f"Loading chat data from {chat_json}")
-        with open(chat_json) as f:
-            self.chat_data = json.load(f)
+        self.chat_data = read_json(DATA_DIR / 'chat_telegram.json')
         
         self.normalizer = Normalizer()
         # load stopwords
         logger.info(f"Loading stop words from {DATA_DIR / 'stop_words.txt'}")
-        with open(DATA_DIR / 'stop_words.txt') as sw:
-            stop_words = sw.readlines()
-        stop_words = list(map(str.strip, stop_words))
-        self.stop_words = list(map(self.normalizer.normalize, stop_words))
+        stop_words = read_file(DATA_DIR / 'stop_words.txt').split('\n')
+        stop_words = map(str.strip, stop_words)
+        self.stop_words = set(map(self.normalizer.normalize, stop_words))
 
+    
     def generate_word_cloud(
         self,
         output_dir: Union[str, Path],
@@ -37,7 +37,7 @@ class ChatStatistics:
         max_words=800, 
         width: int =1000, height: int =1000,
         backgound_color: str ='white'):
-        """Generates a word cloud from the chat data
+        """Generate a word cloud from the chat data
         :param output_dir: path to output directory for word cloud image
         """
         logger.info("Loading text content...")
@@ -54,8 +54,8 @@ class ChatStatistics:
                         tokens = word_tokenize(sub_1)
                         tokens = filter(lambda item: item not in self.stop_words, tokens)
                         text_content += f"\n {' '.join(tokens)}"
-                    elif sub_1['type'] in ['code', 'link']:
-                        pass
+                    elif sub_1['type'] in ['link', 'hashtag', 'mention', 'phone', 'email']:
+                        continue
                     else:
                         tokens = word_tokenize(sub_1['text'])
                         tokens = filter(lambda item: item not in self.stop_words, tokens)
@@ -79,12 +79,78 @@ class ChatStatistics:
         logger.info(f"Saving word cloud to {output_dir}...")
         wordcloud.to_file(str(output_dir / 'wordcloud.png'))
 
+    @staticmethod
+    def rebuild_msg(sub_message: dict):
+        """ convert a message with text type of list to convert a message with text type of string
+        :param sub_message: a message includes text with list type
+        """
+        res_msg = ''
+        for item in sub_message['text']:
+            if isinstance(item, str):
+                res_msg = ' '.join([res_msg, item])
+            else:
+                res_msg = ' '.join([res_msg, item['text']])
+            
+        return res_msg
 
+
+    def msg_has_question(self, msg: dict) -> bool:
+        """ return boolean if a message has question elements
+        :param msg: any message
+        :return: True if message is a question
+        """
+        if not isinstance(msg['text'], str):
+            msg['text'] = self.rebuild_msg(msg)
+        
+        sentences = sent_tokenize(msg['text'])
+        for sentence in sentences:
+            if ('?' not in sentence) and ('؟' not in sentence) and ('چرا' not in sentence) and ('آیا' not in sentence):
+                continue
+            return True
+
+
+
+
+    def get_top_users(self, top_n: int = 10) -> dict:
+        """ get users with most messages response
+        :param top_n: number of top people to show
+        :return: a dictionary with if and number of messages response
+        """
+        logger.info("Getting top users...")
+        is_question = defaultdict(bool)
+
+        for msg in self.chat_data['messages']:
+            if not isinstance(msg['text'], str):
+                msg['text'] = self.rebuild_msg(msg)
+                
+            sentences = sent_tokenize(msg['text'])
+            for sentence in sentences:
+                if ('?' not in sentence) and ('؟' not in sentence) and ('چرا' not in sentence) and ('آیا' not in sentence):
+                    continue
+                is_question[msg['id']] = True
+                break
+
+        # loads top users
+        users = []
+        for msg in self.chat_data['messages']:
+            if not msg.get('reply_to_message_id'):
+                continue
+          
+            if not is_question[msg['reply_to_message_id']]:
+                continue
+        
+            users.append(msg['from_id'])
+            return dict(Counter(users).most_common(top_n))
+        
 
 
 
 if __name__ == "__main__":
-    chat_stats = ChatStatistics(chat_json=DATA_DIR / 'result_telegram.json')
+    chat_stats = ChatStatistics(chat_json=DATA_DIR / 'chat_telegram.json')
     chat_stats.generate_word_cloud(output_dir=DATA_DIR)
+    
+    top_users = chat_stats.get_top_users(top_n=10)
+    print(top_users)
+
     
     print("Done!")
