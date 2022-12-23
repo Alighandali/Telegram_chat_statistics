@@ -20,7 +20,7 @@ class ChatStatistics:
         """
         # load chat data
         logger.info(f"Loading chat data from {chat_json}")
-        self.chat_data = read_json(DATA_DIR / 'chat_telegram.json')
+        self.chat_data = read_json(chat_json)
         
         self.normalizer = Normalizer()
         # load stopwords
@@ -109,14 +109,20 @@ class ChatStatistics:
             return True
 
 
+    def id_and_name(self):
+        id_and_name = {}
+        for msg in self.chat_data['messages']:
+            if not msg.get('from_id'):
+                continue
+            id_and_name[msg['from_id']] = msg['from']
+        return id_and_name
 
-
-    def get_top_users(self, top_n: int = 10) -> dict:
-        """ get users with most messages response
+    def get_top_answering_users(self, top_n: int) -> dict:
+        """ get Active users(not None users) with most messages response
         :param top_n: number of top people to show
         :return: a dictionary with if and number of messages response
         """
-        logger.info("Getting top users...")
+        logger.info("Getting top answering users...")
         is_question = defaultdict(bool)
 
         for msg in self.chat_data['messages']:
@@ -130,17 +136,49 @@ class ChatStatistics:
                 is_question[msg['id']] = True
                 break
 
+
+        
         # loads top users
         users = []
+        user_names = self.id_and_name()
         for msg in self.chat_data['messages']:
             if not msg.get('reply_to_message_id'):
                 continue
           
             if not is_question[msg['reply_to_message_id']]:
                 continue
+            if user_names[msg['from_id']] is None:
+                continue
         
+            
             users.append(msg['from_id'])
-            return dict(Counter(users).most_common(top_n))
+            top_users = dict(Counter(users).most_common(top_n))
+        
+        f_top_users = {user_names[k]: v for k,v in top_users.items()}
+        print('Top answering users', f_top_users, end='\n\n')
+        return f_top_users
+
+    def get_most_talkative_users(self, top_n: int) -> dict:
+        """ get Active users(not None users) with most messages response
+        :param top_n: number of top people to show
+        :return: a dictionary with if and number of messages response
+        """
+        logger.info("Getting most talkative users...")
+        
+        # loads top users
+        users = []
+        user_names = self.id_and_name()
+        for msg in self.chat_data['messages']:
+            if user_names.get(msg.get('from_id')) is None:
+                continue
+        
+            
+            users.append(msg['from_id'])
+            top_users = dict(Counter(users).most_common(top_n))
+        
+        f_top_users = {user_names[k]: v for k,v in top_users.items()}
+        print('Most talkative users', f_top_users, end='\n\n')
+        return f_top_users
         
 
 
@@ -148,9 +186,9 @@ class ChatStatistics:
 if __name__ == "__main__":
     chat_stats = ChatStatistics(chat_json=DATA_DIR / 'chat_telegram.json')
     chat_stats.generate_word_cloud(output_dir=DATA_DIR)
-    
-    top_users = chat_stats.get_top_users(top_n=10)
-    print(top_users)
+    chat_stats.get_top_answering_users(top_n=10)
+    chat_stats.get_most_talkative_users(top_n=10)
+
 
     
-    print("Done!")
+    print("*********************************************Done!*********************************************")
